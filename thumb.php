@@ -16,7 +16,7 @@ define('ADJUST_ORIENTATION',    true);          // Auto adjust orientation for J
 define('JPEG_QUALITY',          100);           // Quality of generated JPEGs (0 - 100; 100 being best)
 
 $src = isset($_GET['src']) ? $_GET['src'] : false;
-$size = isset($_GET['size']) ? str_replace(array('<', 'x'), '', $_GET['size']) != '' ? $_GET['size'] : 100 : 100;
+$size = isset($_GET['size']) ? str_replace(array('<', 'x'), '', $_GET['size']) != '' ? $_GET['size'] : 500 : 500;
 $crop = isset($_GET['crop']) ? max(0, min(1, $_GET['crop'])) : 1;
 $trim = isset($_GET['trim']) ? max(0, min(1, $_GET['trim'])) : 0;
 $zoom = isset($_GET['zoom']) ? max(0, min(1, $_GET['zoom'])) : 0;
@@ -25,6 +25,7 @@ $sharpen = isset($_GET['sharpen']) ? max(0, min(100, $_GET['sharpen'])) : 0;
 $gray = isset($_GET['gray']) ? max(0, min(1, $_GET['gray'])) : 0;
 $ignore = isset($_GET['ignore']) ? max(0, min(1, $_GET['ignore'])) : 0;
 $path = parse_url($src);
+
 
 if (isset($path['scheme'])) {
     $base = parse_url('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
@@ -71,6 +72,7 @@ $file_hash = md5($file_salt . ($src.$size.$crop.$trim.$zoom.$align.$sharpen.$gra
 $file_temp = THUMB_CACHE . $file_hash . '.img.txt';
 $file_name = basename(substr($src, 0, strrpos($src, '.')) . strtolower(strrchr($src, '.')));
 
+// TODO: don't create index.html or *.img.txt files
 if (!file_exists(THUMB_CACHE . 'index.html')) {
     touch(THUMB_CACHE . 'index.html');
 }
@@ -122,6 +124,7 @@ if (!file_exists($file_temp)) {
         }
     }
     $oi = imagecreatefromstring($data);
+    /*
     if (function_exists('exif_read_data') && ADJUST_ORIENTATION && $type == 2) {
         // I know supressing errors is bad, but calling exif_read_data on invalid
         // or corrupted data returns a fatal error and there's no way to validate
@@ -171,6 +174,7 @@ if (!file_exists($file_temp)) {
             }
         }
     }
+    */
     list($w,$h) = explode('x', str_replace('<', '', $size) . 'x');
     $w = ($w != '') ? floor(max(8, min(1500, $w))) : '';
     $h = ($h != '') ? floor(max(8, min(1500, $h))) : '';
@@ -186,8 +190,11 @@ if (!file_exists($file_temp)) {
         $crop = 0;
         $trim = 1;
     }
-    $trim_w = ($trim) ? 1 : ($w == '') ? 1 : 0;
-    $trim_h = ($trim) ? 1 : ($h == '') ? 1 : 0;
+    // Unparenthesized `a ? b : c ? d : e` is not supported.
+    // Use either `(a ? b : c) ? d : e` or `a ? b : (c ? d : e)`
+    // Fixed by sp@darch.dk (2026)
+    $trim_w = ($trim ? 1 : ($w == '')) ? 1 : 0;
+    $trim_h = ($trim ? 1 : ($h == '')) ? 1 : 0;
     if ($crop) {
         $w1 = (($w0 / $h0) > ($w / $h)) ? floor($w0 * $h / $h0) : $w;
         $h1 = (($w0 / $h0) < ($w / $h)) ? floor($h0 * $w / $w0) : $h;
